@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+            integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+            integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+            crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+            integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+            crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <style>
+        .ui-menu-item {
+            /* styles */
+            font-size: 10pt;
+        }
+    </style>
+    <title>Title</title>
+</head>
+<body>
+<div class="container">
+    <div class="row" style="margin-top: 20px;">
+        <h2>아파트 월별 실거래 가격</h2>
+    </div>
+
+    <div class="row" style="margin-top: 20px;">
+
+        <div class="input-group col-md-12" style="padding-left: 0px; padding-right: 0px;">
+            <div class="input-group col-md-8" style="padding-left: 0px;">
+                <div class="col-md-2" style="padding-left: 0px; max-width: 100px;">
+                    <select class="form-control mb-2 custom-select" id="target_year">
+                        <option value="2020">2020</option>
+                    </select>
+                </div>
+                <div class="col-md-2" style="padding-left: 0px; max-width: 80px;">
+                    <select class="form-control mb-2 custom-select" id="target_month">
+                        {% for i in  range(1,13) %}
+                            <option value="{{ i }}">{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6" style="min-width: 300px; padding-left: 0px;">
+                    <label class="sr-only" for="sarchAddress">Name</label>
+                    <input type="text" class="form-control mb-2 ui-autocomplete-input" id="sarchAddress"
+                           placeholder="지번주소 (예: 성북구)" autocomplete="off">
+                </div>
+            </div>
+            <div class="col-md-4" style="padding-right: 0px;">
+                <div class="col-md-7 input-group" style="float: right;padding-right: 0px;">
+                    <div style="margin-right: 5px;">
+                        <small>페이지당 개수:
+                        </small>
+                    </div>
+
+                    <select class="form-control mb-2 custom-select" id="page_amount">
+                        <option value="10">10</option>
+                        <option value="15">15</option>
+                        <option value="30">30</option>
+                        <option value="all">all</option>
+                    </select>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+    {#<div class="row" style="border: 1px solid slategray;"></div>#}
+    <div class="row">
+        <table class="table table-striped" id="tradeInfoTable" style="font-size: 10pt;">
+            <thead style="background-color: steelblue; color: white;">
+            <tr>
+                <th scope="col">일련번호</th>
+                <th scope="col">아파트명</th>
+                <th scope="col">도로명</th>
+                <th scope="col">전용면적</th>
+                <th scope="col">층</th>
+                <th scope="col">거래금액</th>
+                <th scope="col">거래일</th>
+            </tr>
+            </thead>
+            <tbody>
+            </tbody>
+
+        </table>
+
+    </div>
+    <div class="row" style="float: right;">
+        <nav aria-label="...">
+            <ul class="pagination">
+                <li class="page-item disabled" name="prev_btn">
+                    <a class="page-link" href="#" tabindex="-1">Previous</a>
+                </li>
+                <li class="page-item" style="display: none" name="prev_number">
+                    <a class="page-link" href="#"><span class="sr-only">1</span></a>
+                </li>
+                <li class="page-item active" name="now_number">
+                    <a class="page-link" href="#">1<span class="sr-only">1</span></a>
+                </li>
+                <li class="page-item" style="display: none" name="next_number">
+                    <a class="page-link" href="#"><span class="sr-only">1</span></a>
+                </li>
+                <li class="page-item disabled" name="next_btn">
+                    <a class="page-link" href="#">Next</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+
+</div>
+</body>
+<script>
+    $("#sarchAddress").autocomplete({
+        source:    function (request, response) {
+            $.ajax({
+                type:     'GET',
+                url:      "/search/address/" + request.term,
+                dataType: "json",
+                data:     {value: request.term},
+                success:  function (data) {
+                    code_data = data['codes']
+                    response(
+                        $.map(code_data, function (item) {
+                            return {
+                                label: item.address_name,
+                                value: item.address_name,
+                                code:  item.code,
+                            }
+                        })
+                    );
+                }
+            });
+        },
+        //조회를 위한 최소글자수
+        minLength: 2,
+        select:    function (event, ui) {
+            $('#sarchAddress').data('code', ui.item.code);
+            load_data(1);
+        },
+        focus:     function (event, ui) {
+            return false;
+        }
+
+
+    });
+
+    function load_data(page_number) {
+
+        if ($('#sarchAddress').data('code') == undefined) {
+            return false
+        }
+
+        $('[name="now_number"] a').text(page_number);
+
+        let params = 'year=' + $('#target_year').val() + '&month=' + $('#target_month').val() + '&address_code=' + $('#sarchAddress').data('code') + '&amount=' + $('#page_amount').val() + '&page=' + page_number;
+        $.ajax({
+            url:         '/trade',
+            contentType: 'application/json',
+            method:      'GET',
+            data:        params
+        }).done(function (res) {
+            $('#tradeInfoTable tbody').empty();
+            let appendData = '';
+            for (let i = 0; i < res['items'].length; i++) {
+                let item = res['items'][i]
+                appendData += '<tr>' +
+                    '<td>' + item['serial_no'] + '</td>' +
+                    '<td>' + item['name'] + '</td>' +
+                    '<td>' + item['road_name'] + '</td>' +
+                    '<td>' + item['ep_area'] + ' m<sup>2</sup></td>' +
+                    '<td>' + item['floor'] + ' 층</td>' +
+                    '<td>' + item['trade_price'] + '<small> (만원)</small></td>' +
+                    '<td>' + item['date'] + '</td>' +
+                    '</tr>'
+            }
+            $('#tradeInfoTable tbody').html(appendData);
+
+
+            var next_btn = document.getElementsByName("next_btn")[0];
+            if (res['has_next']) {
+                next_btn.classList.remove("disabled");
+                $('[name="next_number"]').css('display', '');
+                $('[name="next_number"] a').text(res['next_num']).attr('onClick', 'load_data(' + res['next_num'] + ')');
+                $('[name="next_btn"] a').attr('onClick', 'load_data(' + res['next_num'] + ')');
+            } else {
+                next_btn.classList.add("disabled");
+                $('[name="next_number"]').css('display', 'none')
+            }
+            var prev_btn = document.getElementsByName("prev_btn")[0];
+            if (res['has_prev']) {
+                prev_btn.classList.remove("disabled");
+                $('[name="prev_number"]').css('display', '');
+                $('[name="prev_number"] a').text(res['prev_num']).attr('onClick', 'load_data(' + res['prev_num'] + ')');
+                $('[name="prev_btn"] a').attr('onClick', 'load_data(' + res['prev_num'] + ')');
+            } else {
+                prev_btn.classList.add("disabled");
+                $('[name="prev_number"]').css('display', 'none')
+            }
+        })
+    }
+
+    $('#target_month, #page_amount').on('change', function () {
+        load_data(1);
+    })
+
+
+</script>
+</html>
